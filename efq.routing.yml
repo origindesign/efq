@@ -1,0 +1,6 @@
+efq.simple:
+    path: '/efq/{content_type}'
+    defaults:
+        _controller: '\Drupal\efq\Controller\EfqController::getNodes'
+    requirements:
+        _access: 'TRUE'
