@@ -1,0 +1,17 @@
+{
+    "name": "origindesign/efq",
+    "description": "Entity Field Queries - Custom Drupal 8 Module for querying different content types",
+    "keywords": ["drupal", "composer", "module", "entity"],
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Sebastien Lamy",
+            "email": "sebastien@origindesign.ca"
+        }
+    ],
+    "type": "drupal-module",
+    "require": {
+		"php": ">=5.6"
+    },
+	"minimum-stability": "dev"
+}
