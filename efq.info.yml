@@ -2,4 +2,5 @@ name: 'EFQ - Entity Query Calls'
 type: module
 description: 'Implement Entity Query call for listing nodes'
 package: Custom
+version: '8.x-1.0'
 core: 8.x
