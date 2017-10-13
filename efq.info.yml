@@ -1,5 +1,5 @@
 name: 'EFQ - Entity Query Calls'
 type: module
-description: 'Implement Entity Query call for listing nodes - ie of path: /efq/[content-type-name]/arguments'
+description: 'Implement Entity Query call for listing nodes'
 package: Custom
 core: 8.x

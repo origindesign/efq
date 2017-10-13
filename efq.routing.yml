@@ -1,6 +1,26 @@
-efq.simple:
-    path: '/efq/{content_type}'
+efq.category_date:
+    path: '/efq/{content_type}/{category}/{date}'
     defaults:
         _controller: '\Drupal\efq\Controller\EfqController::getNodes'
+        category: null
+        date: null
+    requirements:
+        _access: 'TRUE'
+
+efq.get_with_args:
+    path: '/efq/args/{content_type}/{args}'
+    defaults:
+        _controller: '\Drupal\efq\Controller\EfqController::getNodesWithArgs'
+        args: null
+    requirements:
+        _access: 'TRUE'
+
+efq.paged:
+    path: '/efq/paged/{content_type}/{category}/{page}/{perPage}'
+    defaults:
+        _controller: '\Drupal\efq\Controller\EfqController::getPagedNodes'
+        perPage: 10
+        page: 1
+        category: null
     requirements:
         _access: 'TRUE'

@@ -2,20 +2,20 @@
 /**
  * @file Contains \Drupal\efq\EfqQueryEntities
  */
- 
+
 namespace Drupal\efq;
 
 use Drupal\efq\QueryBuilder\QueryBuilder;
 use Drupal\Core\Entity\EntityTypeManagerInterface;
 
- 
+
 /**
  * A Service for querying entities.
- * 
+ *
  */
 class EfqQueryEntities {
 
-    
+
     protected $entityTypeManager;
     protected $queryBuilder;
 
@@ -57,7 +57,7 @@ class EfqQueryEntities {
             // Run the query and grab entities IDs out of it.
             $nids = $this->queryBuilder->apply();
             // Get proper rendered Entities based on IDs and view mode
-            $render = $this->renderNodes( $nids, $view_mode );
+            $render = $this->renderNodes( $nids, $view_mode, $entity_type );
         }
 
         return $render;
@@ -66,20 +66,41 @@ class EfqQueryEntities {
 
 
 
-    /** Get entities with pager
-     *
-     * @param int $pageNo
-     * @param int $perPage
-     * @param string $url
+
+    /**
+     * Get the entities nids requested by EntityQuery
      * @param string $bundle
-     * @param string $view_mode
      * @param array $conditions
+     * @param array $range
      * @param array $sortBy
-     * @param array $category
+     * @param bool $random
      * @param string $entity_type
      * @return array
      */
-    public function getEntitiesPaged($pageNo, $perPage, $url, $bundle, $view_mode = 'teaser', $conditions = NULL, $sortBy = NULL, $category = NULL, $entity_type = 'node') {
+    public function getNidsOnly ( $bundle = 'article', $conditions = NULL, $range = NULL, $sortBy = NULL, $random = false, $entity_type = 'node' ) {
+
+        // Build the query
+        $this->queryBuilder->build( $bundle, $conditions, $range, $sortBy, $random, $entity_type );
+
+        // Run the query and grab entities IDs out of it.
+        $nids = $this->queryBuilder->apply();
+
+        return $nids;
+    }
+
+
+    /**
+     * @param $pageNo
+     * @param $perPage
+     * @param $bundle
+     * @param string $view_mode
+     * @param null $conditions
+     * @param null $sortBy
+     * @param null $category
+     * @param string $entity_type
+     * @return array
+     */
+    public function getEntitiesPaged($pageNo, $perPage, $bundle, $view_mode = 'teaser', $conditions = NULL, $sortBy = NULL, $category = NULL, $entity_type = 'node') {
 
         // Range based on pager value
         $range = array(
@@ -91,7 +112,7 @@ class EfqQueryEntities {
         $nodesList = $this->getEntities( $bundle, $view_mode, $conditions, $range, $sortBy, false, $entity_type );
 
         // Get pager html
-        $pager = $this->renderPager( $bundle, $conditions, $url, $perPage, $pageNo, $category );
+        $pager = $this->renderPager( $bundle, $conditions, $pageNo, $perPage, $category );
 
         // Return a render of all nodes suffixed with pager
         if ($nodesList){
@@ -102,7 +123,7 @@ class EfqQueryEntities {
         // If nothing is returned, then return a no result message
         return [
             '#type' => 'markup',
-            '#markup' => '<p class="no-results">Sorry, there are no results for your current selection.</p>',
+            '#markup' => '<p class="no-results">'.t('Sorry, there are no results for your current selection.').'</p>',
         ];
 
 
@@ -114,44 +135,45 @@ class EfqQueryEntities {
      * Return a list of nodes that are published.
      * @param $nids
      * @param $view_mode
+     * @param $entity_type
      * @return string
      */
-    protected function renderNodes ($nids, $view_mode) {
+    protected function renderNodes ($nids, $view_mode, $entity_type = 'node') {
 
-        if( !empty($nids) ){    
-            
+        if( !empty($nids) ){
+
              // Get the node storage object.
-            $node_storage = $this->entityTypeManager->getStorage('node');
-            
+            $node_storage = $this->entityTypeManager->getStorage($entity_type);
+
             // Get the view builder object
-            $view_builder = $this->entityTypeManager->getViewBuilder('node');
+            $view_builder = $this->entityTypeManager->getViewBuilder($entity_type);
 
             // Use the loadMultiple function to load an array of node objects keyed by node ID.
             $nodes = $node_storage->loadMultiple($nids);
 
             // Prepare output for rendering
             $output = $view_builder->viewMultiple($nodes, $view_mode);
-            
+
             return $output;
-            
+
         }
 
         return false;
-        
-    }
 
+    }
 
 
     /** Build pager
      *
      * @param string $content_type
      * @param array $conditions
+     * @param $url
      * @param int $perPage
      * @param int $page
-     * @param int $category
+     * @param int|string $category
      * @return string
      */
-    public function renderPager($content_type, $conditions, $url, $perPage, $page, $category = ''){
+    public function renderPager($content_type, $conditions, $page, $perPage, $args){
 
         // Get count of nodes in query
         $nodes = $this->getEntities($content_type, 'teaser', $conditions, NULL, NULL, true);
@@ -159,15 +181,25 @@ class EfqQueryEntities {
         // Get total pages
         $total = ceil(intval($nodes)/$perPage);
 
+        // Strip |paged:x-x from args for rewriting
+        $argsArray = explode('|',$args);
+        foreach($argsArray as $key => $value){
+            if(strpos($value,'paged') !== false){
+                unset($argsArray[$key]);
+            }
+        }
+        $newArgs = implode('|',$argsArray);
+
+        // Setup output of pager html
         $output = '';
 
         if($total > 1){
 
-            $output .= '<div class="pager ajax"><h3>More Articles</h3><ul>';
+            $output .= '<div class="pager ajax"><ul>';
 
             // Previous
             if($page != 1){
-                $output .= '<li class="prev"><a href="'.$url.'/'.($page-1).'/'.$category.'"></a></li>';
+                $output .= '<li class="prev"><a href="#/paged:'.($page-1).'-'.$perPage.'|'.$newArgs.'"></a></li>';
             }
             // Loop through and create page numbers
             for($i = 1; $i <= $total ; $i++){
@@ -175,11 +207,11 @@ class EfqQueryEntities {
                 if($page == $i){
                     $class = 'active';
                 }
-                $output .= '<li><a class="'.$class.'" href="'.$url.'/'.$i.'/'.$category.'">'.$i.'</a> </li>';
+                $output .= '<li><a class="'.$class.'" href="#/paged:'.$i.'-'.$perPage.'|'.$newArgs.'">'.$i.'</a></li>';
             }
             // Next
             if($page != $total){
-                $output .= '<li class="next"><a href="'.$url.'/'.($page+1).'/'.$category.'"></a></li>';
+                $output .= '<li class="next"><a href="#/paged:'.($page+1).'-'.$perPage.'|'.$newArgs.'"></a></li>';
             }
 
             $output .= '</ul></div>';
@@ -189,6 +221,6 @@ class EfqQueryEntities {
         return $output;
 
     }
-    
-    
+
+
 }

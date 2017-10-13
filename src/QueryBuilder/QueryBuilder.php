@@ -58,16 +58,18 @@ class QueryBuilder {
      * @param string $entity_type (optional, type of entity, ie: node, user, ... default is node)
      * @return array
      */
-    public function build( $bundle = 'article', $conditions = NULL, $range = NULL, $sortBy = NULL, $random = false, $entity_type = 'node' ){
+    public function build( $bundle, $conditions = NULL, $range = NULL, $sortBy = NULL, $random = false, $entity_type = 'node' ){
 
         // Use the factory to create a query object for node entities.
         $this->query = $this->queryFactory->get($entity_type);
 
         // Add filter content_type
-        if(is_array($bundle)){
-            $this->applyCondition ( 'type', $bundle, 'IN' );
-        }else{
-            $this->applyCondition ( 'type', $bundle );
+        if(isset($bundle) && $bundle != ''){
+            if(is_array($bundle)){
+                $this->applyCondition ( 'type', $bundle, 'IN' );
+            }else{
+                $this->applyCondition ( 'type', $bundle );
+            }
         }
 
 
@@ -105,7 +107,6 @@ class QueryBuilder {
             // Use Sort argument
             $this->applySort($sortBy);
         }
-
 
         return $this->query;
 
@@ -150,7 +151,7 @@ class QueryBuilder {
         foreach ( $conditions as $key => $value ) {
 
             // If there is grouping elements then apply conditions with group (AND or OR)
-            if ($key == "group"){
+            if ($key == "group" || $key == "group2"){
 
                 $this->applyConditionsGroup ( $value );
 
@@ -307,9 +308,7 @@ class QueryBuilder {
 
         }
 
-
         $this->query->condition($group);
-
 
     }
 
