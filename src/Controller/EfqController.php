@@ -10,6 +10,7 @@ namespace Drupal\efq\Controller;
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DrupalDateTime;
 use Symfony\Component\DependencyInjection\ContainerInterface;
+use Symfony\Component\HttpFoundation\Request;
 use Drupal\efq\EfqQueryEntities;
 
 
@@ -48,58 +49,47 @@ class EfqController extends ControllerBase {
     }
 
 
-
-
     /**
-     * @param string $content_type
-     * @param null $args
+     * @param Request $request
      * @return array
      */
-    public function getNodesWithArgs($content_type = 'article', $args = null){
+    public function getNodesPost(Request $request){
 
-        // Default Entity Type
+        // Default Parameters
         $entity_type = 'node';
-
-        // Only get Published Nodes
+        $content_type = 'page';
         $conditions = array(
             "status" => 1
         );
-
-        // Default view_mode
         $view_mode = 'teaser';
-
-        // Default Sort
         $sort = NULL;
-
-        // Default Range
         $range = array(
             "start" => 0,
             "length" => 1000
         );
-
-        // Default Paged
         $paged = false;
 
-        // If args are set
-        if($args != null){
+        // Post Params
+        $params = $request->request->all();
 
-            $argValues = array();
-            $argTypes = explode('|',$args);
+        var_dump($request->request->all());
 
-            // Explode types to get key => value pairs
-            foreach($argTypes as $type){
-                list($key, $value) = explode(':', $type);
-                $argValues[$key] = $value;
-            }
+        // If params are set
+        if($params != null){
 
             // Switch based on key of variable types
-            foreach($argValues as $key => $value){
+            foreach($params as $key => $value){
 
                 switch($key){
 
                     // Format entity_type:node
                     case 'entity_type':
                         $entity_type = $value;
+                        break;
+
+                    // Format content_type:page
+                    case 'content_type':
+                        $content_type = $value;
                         break;
 
                     // Format view_mode:teaser
@@ -182,7 +172,7 @@ class EfqController extends ControllerBase {
             $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort, false, $entity_type );
 
             // Get pager html
-            $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $args );
+            $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $params );
 
             // Return a render of all nodes suffixed with pager
             if ($nodesList){
@@ -527,13 +517,16 @@ class EfqController extends ControllerBase {
         // Transform $date string into a date object, first hour first minute of day
         $formatDate = new DrupalDateTime($date);
 
+        // Set the time zone as per stored in DB (GMT usually)
+        $formatDate->setTimezone(new \DateTimezone(DATETIME_STORAGE_TIMEZONE));
+
         if ( $delta == 'end' ){
             // Transform $date string into a date object, last hour last minute of day
             $formatDate->setTime(23,59);
+        }else{
+            // Transform $date string into a date object, first hour first minute of day
+            $formatDate->setTime(00,01);
         }
-
-        // Set the time zone as per stored in DB (GMT usually)
-        $formatDate->setTimezone(new \DateTimezone(DATETIME_STORAGE_TIMEZONE));
 
         // Return the DrupalDatetime object
         return $formatDate->format(DATETIME_DATETIME_STORAGE_FORMAT);

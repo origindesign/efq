@@ -165,15 +165,14 @@ class EfqQueryEntities {
 
     /** Build pager
      *
-     * @param string $content_type
-     * @param array $conditions
-     * @param $url
-     * @param int $perPage
-     * @param int $page
-     * @param int|string $category
+     * @param $content_type
+     * @param $conditions
+     * @param $page
+     * @param $perPage
+     * @param $params
      * @return string
      */
-    public function renderPager($content_type, $conditions, $page, $perPage, $args){
+    public function renderPager($content_type, $conditions, $page, $perPage, $params){
 
         // Get count of nodes in query
         $nodes = $this->getEntities($content_type, 'teaser', $conditions, NULL, NULL, true);
@@ -181,37 +180,39 @@ class EfqQueryEntities {
         // Get total pages
         $total = ceil(intval($nodes)/$perPage);
 
-        // Strip |paged:x-x from args for rewriting
-        $argsArray = explode('|',$args);
-        foreach($argsArray as $key => $value){
-            if(strpos($value,'paged') !== false){
-                unset($argsArray[$key]);
-            }
-        }
-        $newArgs = implode('|',$argsArray);
-
         // Setup output of pager html
         $output = '';
 
         if($total > 1){
 
+            // Setup new data strings
+            $prevParams = $params;
+            $nextParams = $params;
+            $prevParams['paged'] = ($page-1).'-'.$perPage;
+            $nextParams['paged'] = ($page+1).'-'.$perPage;
+
             $output .= '<div class="pager ajax"><ul>';
 
             // Previous
             if($page != 1){
-                $output .= '<li class="prev"><a href="#/paged:'.($page-1).'-'.$perPage.'|'.$newArgs.'"></a></li>';
+                $output .= "<li class='prev'><a href='#' data-params='".json_encode($prevParams)."'></a></li>";
             }
             // Loop through and create page numbers
             for($i = 1; $i <= $total ; $i++){
+
+                // Set up params string
+                $iParams = $params;
+                $iParams['paged'] = $i.'-'.$perPage;
+                // Active class
                 $class = '';
                 if($page == $i){
                     $class = 'active';
                 }
-                $output .= '<li><a class="'.$class.'" href="#/paged:'.$i.'-'.$perPage.'|'.$newArgs.'">'.$i.'</a></li>';
+                $output .= "<li><a class='".$class."' href='#' data-params='".json_encode($iParams)."'>".$i."</a></li>";
             }
             // Next
             if($page != $total){
-                $output .= '<li class="next"><a href="#/paged:'.($page+1).'-'.$perPage.'|'.$newArgs.'"></a></li>';
+                $output .= "<li class='next'><a href='#' data-params='".json_encode($nextParams)."'></a></li>";
             }
 
             $output .= '</ul></div>';

@@ -7,11 +7,11 @@ efq.category_date:
     requirements:
         _access: 'TRUE'
 
-efq.get_with_args:
-    path: '/efq/args/{content_type}/{args}'
+efq.post:
+    path: '/efq/post'
+    methods: [POST]
     defaults:
-        _controller: '\Drupal\efq\Controller\EfqController::getNodesWithArgs'
-        args: null
+        _controller: '\Drupal\efq\Controller\EfqController::getNodesPost'
     requirements:
         _access: 'TRUE'
 
