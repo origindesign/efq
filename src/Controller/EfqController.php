@@ -68,6 +68,7 @@ class EfqController extends ControllerBase {
             "length" => 1000
         );
         $paged = false;
+        $random = false;
 
         // Post Params
         $params = $request->request->all();
@@ -124,12 +125,37 @@ class EfqController extends ControllerBase {
                         $perPage = $values[1];
                         break;
 
+                    // Format field:field_name--value--<=
+                    case 'field':
+                        $fieldArray = explode('--',$value);
+                        if($fieldArray[2] == 'BETWEEN'){
+                            $values = explode('-',$fieldArray[1]);
+                            $conditions[$fieldArray[0]] = array( array($values[0], $values[1]), $fieldArray[2]);
+                        }else{
+                            $conditions[$fieldArray[0]] = array( $fieldArray[1], $fieldArray[2]);
+                        }
+                        break;
+
                     // Format category:field_name--10-11
                     case 'category':
                         // Only parse if value does not contain all
                         if(strpos($value,'all') === false){
                             $conditions['group'] = $this->parseCategory($value);
                         }
+                        break;
+
+                    // Format category:field_name--10-11,field_name_2--5
+                    case 'categories':
+                        $values = $this->parseCategories($value);
+                        if(!empty($values['grouping'])){
+                            $conditions['group'] = $this->parseCategories($value);
+                        }
+                        break;
+
+                    // Format address:field_name--column--value
+                    case 'address':
+                        $addressArray = explode('--',$value);
+                        $conditions[$addressArray[0].'.'.$addressArray[1]] = array( $addressArray[2], 'CONTAINS');
                         break;
 
                     // Format date:field_name--d-m-Y,d-m-Y
@@ -140,6 +166,13 @@ class EfqController extends ControllerBase {
                     // Format byMonth:field_name--d-m-Y
                     case 'byMonth':
                         $conditions['group2'] = $this->parseByMonth($value);
+                        break;
+
+                    // Format random:1
+                    case 'random':
+                        if($value == 1){
+                            $random = true;
+                        };
                         break;
 
                 }
@@ -153,7 +186,7 @@ class EfqController extends ControllerBase {
         // Use the injected service to get the node list.
         if($paged == false){
 
-            $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort );
+            $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort, false, $random, $entity_type );
 
             // Return a render of all nodes
             if ($nodesList){
@@ -169,7 +202,7 @@ class EfqController extends ControllerBase {
             );
 
             // Use the injected service to get the node list
-            $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort, false, $entity_type );
+            $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort, false, false, $entity_type );
 
             // Get pager html
             $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $params );
@@ -473,6 +506,35 @@ class EfqController extends ControllerBase {
      * @param $value
      * @return array
      */
+    protected function parseCategories($value){
+
+        $conditions = array(
+            "andor" => "AND",
+            'grouping' => array()
+        );
+
+        $categoryArray = explode(',',$value);
+
+        foreach($categoryArray as $category){
+
+            if(strpos($category,'all') === false){
+                $fieldArray = explode('--',$category);
+                $tids = explode('-',$fieldArray[1]);
+                $conditions['grouping'][$fieldArray[0]] = array( $tids, 'IN');
+            }
+
+        }
+
+        return $conditions;
+
+    }
+
+
+
+    /**
+     * @param $value
+     * @return array
+     */
     protected function parseSort($value){
 
         $values = explode(',',$value);
@@ -480,11 +542,14 @@ class EfqController extends ControllerBase {
 
         foreach($values as $pair){
 
-            $sort = explode('-',$pair);
-            $sorts[] = array(
-                "field" => $sort[0],
-                "direction" => $sort[1]
-            );
+            if(strpos($pair,'null') === false){
+                $sort = explode('-',$pair);
+                $sorts[] = array(
+                    "field" => $sort[0],
+                    "direction" => $sort[1]
+                );
+            }
+
         }
 
         return $sorts;

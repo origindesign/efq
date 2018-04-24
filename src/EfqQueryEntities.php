@@ -142,7 +142,7 @@ class EfqQueryEntities {
 
         if( !empty($nids) ){
 
-             // Get the node storage object.
+            // Get the node storage object.
             $node_storage = $this->entityTypeManager->getStorage($entity_type);
 
             // Get the view builder object
