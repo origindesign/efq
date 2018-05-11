@@ -120,9 +120,10 @@ class EfqController extends ControllerBase {
                     // Format paged:pageNo-perPage
                     case 'paged':
                         $paged = true;
-                        $values = $this->parseBasicValues($value);
-                        $pageNo = $values[0];
-                        $perPage = $values[1];
+                        $values = $this->parsePager($value);
+                        $pageNo = $values['values'][0];
+                        $perPage = $values['values'][1];
+                        $pagerType = $values['type'];
                         break;
 
                     // Format field:field_name--value--<=
@@ -205,7 +206,7 @@ class EfqController extends ControllerBase {
             $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort, false, false, $entity_type );
 
             // Get pager html
-            $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $params );
+            $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $params, $pagerType );
 
             // Return a render of all nodes suffixed with pager
             if ($nodesList){
@@ -553,6 +554,31 @@ class EfqController extends ControllerBase {
         }
 
         return $sorts;
+
+    }
+
+
+
+    /**
+     * @param $value
+     * @return array
+     */
+    protected function parsePager($value){
+
+        if(strpos($value,'--') !== false){
+
+            $array = explode('--',$value);
+            return [
+                'values' => $this->parseBasicValues($array[0]),
+                'type' => $array[1]
+            ];
+
+        }
+
+        return [
+            'values' => $this->parseBasicValues($value),
+            'type' => 'default'
+        ];
 
     }
 
