@@ -220,7 +220,7 @@ class EfqQueryEntities {
                     if($page == $i){
                         $class = 'active';
                     }
-                    $output .= "<li><a class='".$class."' href='#' data-params='".json_encode($iParams)."'>".$i."</a></li>";
+                    $output .= "<li class='".$class."'><a class='".$class."' href='#' data-params='".json_encode($iParams)."'>".$i."</a></li>";
                 }
             }
 
