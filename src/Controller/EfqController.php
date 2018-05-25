@@ -117,7 +117,10 @@ class EfqController extends ControllerBase {
                         );
                         break;
 
-                    // Format paged:pageNo-perPage
+                    // Format paged:pageNo-perPage--type
+                    // paged:1-10--default
+                    // paged:1-10--simple
+                    // paged:1-10--restricted-7 (7=restrict by)
                     case 'paged':
                         $paged = true;
                         $values = $this->parsePager($value);

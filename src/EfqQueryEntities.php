@@ -189,19 +189,23 @@ class EfqQueryEntities {
             // Setup new data strings
             $prevParams = $params;
             $nextParams = $params;
-            if($type == 'simple'){
-                $prevParams['paged'] = ($page-1).'-'.$perPage.'--simple';
-                $nextParams['paged'] = ($page+1).'-'.$perPage.'--simple';
+            $prevParams['paged'] = ($page-1).'-'.$perPage.'--'.$type;
+            $nextParams['paged'] = ($page+1).'-'.$perPage.'--'.$type;
+
+            // If restricted value passed
+            if(strpos($type,'restricted-') !== false){
+                $array = explode('-',$type);
+                $restrictBy = $array[1];
+                $restricted = true;
             }else{
-                $prevParams['paged'] = ($page-1).'-'.$perPage;
-                $nextParams['paged'] = ($page+1).'-'.$perPage;
+                $restricted = false;
             }
 
             $output .= '<div class="pager ajax"><ul>';
 
             // Previous
             if($page != 1){
-                $output .= "<li class='prev'><a href='#' data-params='".json_encode($prevParams)."'></a></li>";
+                $output .= "<li class='prev'><a href='#' data-params='".json_encode($prevParams)."' title='Previous'></a></li>";
             }
 
             if($type == 'simple'){
@@ -209,24 +213,53 @@ class EfqQueryEntities {
                 $output .= '<li class="text">Page '.$page.' of '.$total.'</li>';
 
             }else{
+                // Add ellipsis to restricted
+                if($restricted){
+                    $offset = ($restrictBy-1)/2;
+                    if($page > $offset + 1){
+                        $firstParams = $params;
+                        $firstParams['paged'] = '1-'.$perPage.'--'.$type;
+                        $output .= "<li class='ellipsis first'><a href='#' class='first' data-params='".json_encode($firstParams)."' title='First'>...</a></li>";
+                    }
+                }
                 // Loop through and create page numbers
                 for($i = 1; $i <= $total ; $i++){
 
                     // Set up params string
                     $iParams = $params;
-                    $iParams['paged'] = $i.'-'.$perPage;
+                    $iParams['paged'] = $i.'-'.$perPage.'--'.$type;
                     // Active class
                     $class = '';
                     if($page == $i){
                         $class = 'active';
                     }
-                    $output .= "<li class='".$class."'><a class='".$class."' href='#' data-params='".json_encode($iParams)."'>".$i."</a></li>";
+                    // Output
+                    $html =  "<li class='".$class."'><a class='".$class."' href='#' data-params='".json_encode($iParams)."'>".$i."</a></li>";
+
+                    // Page Numbers
+                    if($restricted){
+                        if(( $i <= $total - $restrictBy  && $i < $page - $offset) || ($i > $restrictBy && $i > $page + $offset)){
+                            $output .= '';
+                        }else{
+                            $output .= $html;
+                        }
+                    }else{
+                        $output .= $html;
+                    }
+                }
+                // Add ellipsis to restricted
+                if($restricted){
+                    if($page < $total - $offset){
+                        $lastParams = $params;
+                        $lastParams['paged'] = $total.'-'.$perPage.'--'.$type;
+                        $output .= "<li class='ellipsis last'><a href='#' class='last' data-params='".json_encode($lastParams)."' title='Last'>...</a></li>";
+                    }
                 }
             }
 
             // Next
             if($page != $total){
-                $output .= "<li class='next'><a href='#' data-params='".json_encode($nextParams)."'></a></li>";
+                $output .= "<li class='next'><a href='#' data-params='".json_encode($nextParams)."' title='Next'></a></li>";
             }
 
             $output .= '</ul></div>';
