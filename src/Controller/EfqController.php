@@ -9,6 +9,7 @@ namespace Drupal\efq\Controller;
 
 use Drupal\Core\Controller\ControllerBase;
 use Drupal\Core\Datetime\DrupalDateTime;
+use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\efq\EfqQueryEntities;
@@ -23,7 +24,7 @@ class EfqController extends ControllerBase {
     protected $efqQueryEntities;
 
 
-    protected $dateFormat = 'd-m-Y';
+    protected $dateFormat = DateTimeItemInterface::DATE_STORAGE_FORMAT; // Y-m-d
     protected $dateDelimiter = '--';
 
 
@@ -162,7 +163,7 @@ class EfqController extends ControllerBase {
                         $conditions[$addressArray[0].'.'.$addressArray[1]] = array( $addressArray[2], 'CONTAINS');
                         break;
 
-                    // Format date:field_name--d-m-Y,d-m-Y
+                    // Format date:field_name--Y-m-d,Y-m-d
                     case 'date':
                         $conditions['group2'] = $this->parseDate($value);
                         break;
@@ -457,7 +458,7 @@ class EfqController extends ControllerBase {
         if ( $this->verifyDate($date) ){
 
             // Get date as array
-            $dateArr = date_parse_from_format ("d-m-Y" ,  $date);
+            $dateArr = date_parse_from_format ("Y-m-d" ,  $date);
             // Get number of days in month
             $numDays = cal_days_in_month(CAL_GREGORIAN, $dateArr['month'], $dateArr['year']);
 
@@ -604,15 +605,15 @@ class EfqController extends ControllerBase {
      *
      * @param $date
      * @param string $delta (either start or end)
-     * @return DrupalDateTime
+     * @return string
      */
     protected function formatDateFilter ($date, $delta = 'start'){
 
         // Transform $date string into a date object, first hour first minute of day
         $formatDate = new DrupalDateTime($date);
 
-        // Set the time zone as per stored in DB (GMT usually)
-        $formatDate->setTimezone(new \DateTimezone(DATETIME_STORAGE_TIMEZONE));
+        // Set the time zone as per stored in DB (UTC)
+        $formatDate->setTimezone(new \DateTimezone(DateTimeItemInterface::STORAGE_TIMEZONE));
 
         if ( $delta == 'end' ){
             // Transform $date string into a date object, last hour last minute of day
@@ -623,7 +624,7 @@ class EfqController extends ControllerBase {
         }
 
         // Return the DrupalDatetime object
-        return $formatDate->format(DATETIME_DATETIME_STORAGE_FORMAT);
+        return $formatDate->format($this->dateFormat);
 
     }
 
