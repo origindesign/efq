@@ -458,7 +458,7 @@ class EfqController extends ControllerBase {
         if ( $this->verifyDate($date) ){
 
             // Get date as array
-            $dateArr = date_parse_from_format ("Y-m-d" ,  $date);
+            $dateArr = date_parse_from_format ($this->dateFormat,  $date);
             // Get number of days in month
             $numDays = cal_days_in_month(CAL_GREGORIAN, $dateArr['month'], $dateArr['year']);
 
