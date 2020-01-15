@@ -174,12 +174,20 @@ class EfqController extends ControllerBase {
 
                     // Format date:field_name--Y-m-d,Y-m-d
                     case 'date':
-                        $conditions['group2'] = $this->parseDate($value);
+                        if (array_key_exists('group2', $conditions)) {
+                            $conditions['group3'] = $this->parseDate($value);
+                        }else{
+                            $conditions['group2'] = $this->parseDate($value);
+                        }
                         break;
 
                     // Format byMonth:field_name--d-m-Y
                     case 'byMonth':
-                        $conditions['group2'] = $this->parseByMonth($value);
+                        if (array_key_exists('group2', $conditions)) {
+                            $conditions['group3'] = $this->parseByMonth($value);
+                        }else{
+                            $conditions['group2'] = $this->parseByMonth($value);
+                        }
                         break;
 
                     // Format random:1
