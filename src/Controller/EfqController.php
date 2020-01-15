@@ -159,9 +159,9 @@ class EfqController extends ControllerBase {
 
                     // Format category_ignore:field_category--10-11
                     case "category_ignore":
-                        if (array_key_exists('group', $conditions)) {
-                            $conditions['group2'] = $this->parseCategoryIgnore($value);
-                        }else{
+                        // Only parse if group (category) doesnt already exist, ie ALL was passed for category field
+                        // If it does, it means a specific TID is already being requested and the ignore is not needed
+                        if (!array_key_exists('group', $conditions)) {
                             $conditions['group'] = $this->parseCategoryIgnore($value);
                         }
                         break;
@@ -174,20 +174,12 @@ class EfqController extends ControllerBase {
 
                     // Format date:field_name--Y-m-d,Y-m-d
                     case 'date':
-                        if (array_key_exists('group2', $conditions)) {
-                            $conditions['group3'] = $this->parseDate($value);
-                        }else{
-                            $conditions['group2'] = $this->parseDate($value);
-                        }
+                        $conditions['group2'] = $this->parseDate($value);
                         break;
 
                     // Format byMonth:field_name--d-m-Y
                     case 'byMonth':
-                        if (array_key_exists('group2', $conditions)) {
-                            $conditions['group3'] = $this->parseByMonth($value);
-                        }else{
-                            $conditions['group2'] = $this->parseByMonth($value);
-                        }
+                        $conditions['group2'] = $this->parseByMonth($value);
                         break;
 
                     // Format random:1
