@@ -156,6 +156,15 @@ class EfqController extends ControllerBase {
                         }
                         break;
 
+                    // Format category_ignore:field_category--10-11
+                    case "category_ignore":
+                        if (array_key_exists('group', $conditions)) {
+                            $conditions['group2'] = $this->parseCategoryIgnore($value);
+                        }else{
+                            $conditions['group'] = $this->parseCategoryIgnore($value);
+                        }
+                        break;
+
                     // Format address:field_name--column--value
                     case 'address':
                         $addressArray = explode('--',$value);
@@ -530,6 +539,26 @@ class EfqController extends ControllerBase {
         }
 
         return $conditions;
+
+    }
+
+
+
+    /**
+     * @param $value
+     * @return array
+     */
+    protected function parseCategoryIgnore($value){
+
+        $categoryArray = explode('--',$value);
+        $tids = explode('-',$categoryArray[1]);
+
+        return array(
+            "andor" => "AND",
+            'grouping' => array(
+                $categoryArray[0] => array( $tids, 'NOT IN'),
+            )
+        );
 
     }
 
