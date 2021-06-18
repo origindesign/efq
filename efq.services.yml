@@ -2,7 +2,7 @@ services:
     # A service to build queries fer getting entities
     efq.query_builder:
         class: Drupal\efq\QueryBuilder\QueryBuilder
-        arguments: [ "@entity.query" ]
+        arguments: [ "@entity_type.manager" ]
     # A service that will let us get nodes.
     efq.query_entities:
         class: Drupal\efq\EfqQueryEntities
