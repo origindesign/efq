@@ -65,10 +65,16 @@ class QueryBuilder {
 
     // Add filter content_type
     if(isset($bundle) && $bundle != ''){
-      if(is_array($bundle)){
-        $this->applyCondition ( 'type', $bundle, 'IN' );
-      }else{
-        $this->applyCondition ( 'type', $bundle );
+      // If taxonomy term
+      if($entity_type == 'taxonomy_term'){
+        $this->applyCondition ( 'vid', $bundle );
+        // Else node
+      } else {
+        if(is_array($bundle)){
+          $this->applyCondition ( 'type', $bundle, 'IN' );
+        }else{
+          $this->applyCondition ( 'type', $bundle );
+        }
       }
     }
 
