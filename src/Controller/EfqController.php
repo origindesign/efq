@@ -219,7 +219,7 @@ class EfqController extends ControllerBase {
       $nodesList = $this->efqQueryEntities->getEntities( $content_type, $view_mode, $conditions, $range, $sort, false, false, $entity_type );
 
       // Get pager html
-      $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $params, $pagerType );
+      $pager = $this->efqQueryEntities->renderPager( $content_type, $conditions, $pageNo, $perPage, $params, $pagerType, $entity_type );
 
       // Return a render of all nodes suffixed with pager
       if ($nodesList){
