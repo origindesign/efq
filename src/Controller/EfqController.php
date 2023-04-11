@@ -130,14 +130,17 @@ class EfqController extends ControllerBase {
             $pagerType = $values['type'];
             break;
 
-          // Format field:field_name--value--<=
+          // Format field:field_name--value--<=,field_name_2--value--<=
           case 'field':
-            $fieldArray = explode('--',$value);
-            if($fieldArray[2] == 'BETWEEN'){
-              $values = explode('-',$fieldArray[1]);
-              $conditions[$fieldArray[0]] = array( array($values[0], $values[1]), $fieldArray[2]);
-            }else{
-              $conditions[$fieldArray[0]] = array( $fieldArray[1], $fieldArray[2]);
+            $values = explode(',', $value);
+            foreach ($values as $field){
+              $fieldArray = explode('--',$field);
+              if($fieldArray[2] == 'BETWEEN'){
+                $values = explode('-',$fieldArray[1]);
+                $conditions[$fieldArray[0]] = array( array($values[0], $values[1]), $fieldArray[2]);
+              }else{
+                $conditions[$fieldArray[0]] = array( $fieldArray[1], $fieldArray[2]);
+              }
             }
             break;
 
