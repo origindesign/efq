@@ -127,7 +127,7 @@ class QueryBuilder {
   public function apply( ){
 
     //dpm( $this->query );
-
+    $this->query->accessCheck(TRUE);
     return $this->query->execute();
 
   }
@@ -140,6 +140,7 @@ class QueryBuilder {
    */
   public function count( ){
 
+    $this->query->accessCheck(TRUE);
     return $this->query->count()->execute();
 
   }
