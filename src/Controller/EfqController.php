@@ -104,6 +104,13 @@ class EfqController extends ControllerBase {
             $conditions['sticky'] = $value;
             break;
 
+          // Format nid:123
+          case 'nid':
+            if(isset($value)){
+              $conditions['nid'] = [$value, '!='];
+            }
+            break;
+
           // Format sort:field_name-DESC,field_name-ASC
           case 'sort':
             $sort = $this->parseSort($value);
