@@ -111,6 +111,13 @@ class EfqController extends ControllerBase {
             }
             break;
 
+          // Format nids:123,456
+          case 'nids':
+            if(isset($value)){
+              $conditions['nid'] = [explode('-',$value), 'IN'];
+            }
+            break;
+
           // Format sort:field_name-DESC,field_name-ASC
           case 'sort':
             $sort = $this->parseSort($value);
