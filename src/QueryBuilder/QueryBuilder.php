@@ -19,6 +19,7 @@ class QueryBuilder {
   protected $entityTypeManager;
   protected $defaultCondition;
   protected $defaultRange;
+  protected $defaultSort;
   protected $query;
 
 
