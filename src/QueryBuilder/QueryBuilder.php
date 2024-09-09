@@ -63,17 +63,20 @@ class QueryBuilder {
     // Use the factory to create a query object for node entities.
     $this->query = $this->entityTypeManager->getStorage($entity_type)->getQuery();
 
-    // Add filter content_type
-    if(isset($bundle) && $bundle != ''){
+    // Add filter content_type or bundle
+    if (isset($bundle) && $bundle != '') {
       // If taxonomy term
-      if($entity_type == 'taxonomy_term'){
-        $this->applyCondition ( 'vid', $bundle );
+      if ($entity_type == 'taxonomy_term') {
+        $this->applyCondition('vid', $bundle);
+        // Else if Media
+      } else if ($entity_type == 'media') {
+        $this->applyCondition('bundle', $bundle);
         // Else node
       } else {
-        if(is_array($bundle)){
-          $this->applyCondition ( 'type', $bundle, 'IN' );
-        }else{
-          $this->applyCondition ( 'type', $bundle );
+        if (is_array($bundle)) {
+          $this->applyCondition('type', $bundle, 'IN');
+        } else {
+          $this->applyCondition('type', $bundle);
         }
       }
     }
