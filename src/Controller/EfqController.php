@@ -50,7 +50,8 @@ class EfqController extends ControllerBase {
   }
 
 
-  /**
+  /** This function is used in ajax requests from controllers to pull content via JS ajax calls
+   *
    * @param Request $request
    * @return array
    */
@@ -71,7 +72,14 @@ class EfqController extends ControllerBase {
     $paged = false;
     $random = false;
 
-    // Post Params
+    // Post Params: get all JSON the post params from the request
+    // EX:  $defaultParams = '{
+    //  "content_type":"article",
+    //  "category":"all",
+    //  "view_mode":"teaser",
+    //  "paged":"1-10--restricted-5",
+    //  "sort":"created-DESC"
+    //}';
     $params = $request->request->all();
 
     // var_dump($request->request->all());
@@ -118,7 +126,9 @@ class EfqController extends ControllerBase {
             }
             break;
 
-          // Format sort:field_name-DESC,field_name-ASC
+          // Format sort:field_name-ASC,created-DESC
+          // Can be passed in as single or multiple sorts, comma seperated
+          // and they will be used in order they are passed in
           case 'sort':
             $sort = $this->parseSort($value);
             break;
@@ -144,7 +154,8 @@ class EfqController extends ControllerBase {
             $pagerType = $values['type'];
             break;
 
-          // Format field:field_name--value--<=,field_name_2--value--<=
+          // Format field:field_name--value--operator,field_name_2--value--operator
+          // EX: field:field_name--10--<=,field_name_2--value--==
           case 'field':
             $values = explode(',', $value);
             foreach ($values as $field){
@@ -158,7 +169,8 @@ class EfqController extends ControllerBase {
             }
             break;
 
-          // Format category:field_name--10-11
+          // Format category:field_name--tid-tid (single or multiple TIDs)
+          // EX: category:field_name--10-11
           case 'category':
             // Only parse if value does not contain all
             if(strpos($value,'all') === false){
@@ -167,6 +179,7 @@ class EfqController extends ControllerBase {
             break;
 
           // Format category:field_name--10-11,field_name_2--5
+          // Used when multiple fields need to be used
           case 'categories':
             $values = $this->parseCategories($value);
             if(!empty($values['grouping'])){
@@ -175,6 +188,7 @@ class EfqController extends ControllerBase {
             break;
 
           // Format category_ignore:field_category--10-11
+          // Used to ignore certain TIDs from field_category
           case "category_ignore":
             // Only parse if group (category) doesnt already exist, ie ALL was passed for category field
             // If it does, it means a specific TID is already being requested and the ignore is not needed
@@ -200,6 +214,7 @@ class EfqController extends ControllerBase {
             break;
 
           // Format random:1
+          // Used to set random ordering
           case 'random':
             if($value == 1){
               $random = true;
@@ -259,7 +274,7 @@ class EfqController extends ControllerBase {
 
   /**
    * Get Nodes based on content type and params
-   *
+   * This is used for standard EFQ calls, non ajax
    * @param string $content_type
    * @param string $view_mode
    * @param null $category format field_name--tid-tid
@@ -273,6 +288,16 @@ class EfqController extends ControllerBase {
     $conditions = array(
       "status" => 1
     );
+
+    /* Conditions can be passed as groups with AND/OR
+     * $conditions['group'] = [
+         'andor' => 'OR',
+         'grouping' => [
+           'field_fieldname' => [1, '<>'], // Not equal to
+           'field_fieldname' => [NULL, 'IS NULL'] // Not empty
+         ]
+       ];
+     */
 
     // Default Sort
     $sort = NULL;
@@ -354,7 +379,6 @@ class EfqController extends ControllerBase {
       );
 
     }
-
 
 
     // Use the injected service to get the node list.
