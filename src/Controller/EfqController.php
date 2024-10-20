@@ -256,7 +256,7 @@ class EfqController extends ControllerBase {
 
       // Return a render of all nodes
       if ($nodesList){
-        $this->cacheBackend->set($cache_id, $nodesList, time() + 300); // Cache for 5 minutes (300 seconds).
+        $this->cacheBackend->set($cache_id, $nodesList, time() + $cache_time);
         return $nodesList;
       }
 
@@ -276,7 +276,7 @@ class EfqController extends ControllerBase {
 
       // Return a render of all nodes suffixed with pager
       if ($nodesList){
-        $this->cacheBackend->set($cache_id, $nodesList, time() + 300); // Cache for 5 minutes (300 seconds).
+        $this->cacheBackend->set($cache_id, $nodesList, time() + $cache_time);
         $nodesList['#suffix'] = $pager;
         return $nodesList;
       }
