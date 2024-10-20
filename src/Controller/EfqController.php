@@ -13,6 +13,7 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\efq\EfqQueryEntities;
+use Drupal\Core\Cache\CacheBackendInterface;
 
 
 
@@ -22,6 +23,7 @@ class EfqController extends ControllerBase {
    * @var \Drupal\efq\EfqQueryEntities
    */
   protected $efqQueryEntities;
+  protected $cacheBackend;
 
 
   protected $dateFormat = DateTimeItemInterface::DATE_STORAGE_FORMAT; // Y-m-d
@@ -30,10 +32,14 @@ class EfqController extends ControllerBase {
 
 
   /**
+   * Constructor.
+   *
    * @param \Drupal\efq\EfqQueryEntities $EfqQueryEntities
+   * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    */
-  public function __construct(EfqQueryEntities $EfqQueryEntities) {
+  public function __construct(EfqQueryEntities $EfqQueryEntities, CacheBackendInterface $cache_backend) {
     $this->efqQueryEntities = $EfqQueryEntities;
+    $this->cacheBackend = $cache_backend;
   }
 
 
@@ -45,7 +51,8 @@ class EfqController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-      $container->get('efq.query_entities')
+        $container->get('efq.query_entities'),
+        $container->get('cache.default')
     );
   }
 
@@ -57,17 +64,31 @@ class EfqController extends ControllerBase {
    */
   public function getNodesPost(Request $request){
 
+    // Default cache time (5 minutes).
+    $default_cache_time = 300;
+    // Get the request params
+    $params = $request->request->all();
+    // Get the cache_time parameter from the request, or use the default if not provided.
+    $cache_time = isset($params['cache_time']) ? (int) $params['cache_time'] : $default_cache_time;
+    // Generate a unique cache ID based on the request parameters.
+    $cache_id = 'efq_nodes_post_' . md5(serialize($params));
+
+    // Check if cached data exists.
+    if ($cache = $this->cacheBackend->get($cache_id)) {
+      return $cache->data;
+    }
+
     // Default Parameters
     $entity_type = 'node';
     $content_type = 'page';
     $conditions = array(
-      "status" => 1
+        "status" => 1
     );
     $view_mode = 'teaser';
     $sort = NULL;
     $range = array(
-      "start" => 0,
-      "length" => 1000
+        "start" => 0,
+        "length" => 1000
     );
     $paged = false;
     $random = false;
@@ -80,7 +101,6 @@ class EfqController extends ControllerBase {
     //  "paged":"1-10--restricted-5",
     //  "sort":"created-DESC"
     //}';
-    $params = $request->request->all();
 
     // var_dump($request->request->all());
 
@@ -137,8 +157,8 @@ class EfqController extends ControllerBase {
           case 'range':
             $values = $this->parseBasicValues($value);
             $range = array(
-              "start" => $values[0],
-              "length" => $values[1]
+                "start" => $values[0],
+                "length" => $values[1]
             );
             break;
 
@@ -236,6 +256,7 @@ class EfqController extends ControllerBase {
 
       // Return a render of all nodes
       if ($nodesList){
+        $this->cacheBackend->set($cache_id, $nodesList, time() + 300); // Cache for 5 minutes (300 seconds).
         return $nodesList;
       }
 
@@ -243,8 +264,8 @@ class EfqController extends ControllerBase {
 
       // Range based on pager value
       $range = array(
-        "start" => ($pageNo * $perPage) - $perPage,
-        "length" => $perPage
+          "start" => ($pageNo * $perPage) - $perPage,
+          "length" => $perPage
       );
 
       // Use the injected service to get the node list
@@ -255,6 +276,7 @@ class EfqController extends ControllerBase {
 
       // Return a render of all nodes suffixed with pager
       if ($nodesList){
+        $this->cacheBackend->set($cache_id, $nodesList, time() + 300); // Cache for 5 minutes (300 seconds).
         $nodesList['#suffix'] = $pager;
         return $nodesList;
       }
@@ -264,8 +286,8 @@ class EfqController extends ControllerBase {
 
     // If nothing is returned, then return a no result message
     return [
-      '#type' => 'markup',
-      '#markup' => '<p class="no-results">Sorry, there are no results for your current selection.</p>',
+        '#type' => 'markup',
+        '#markup' => '<p class="no-results">Sorry, there are no results for your current selection.</p>',
     ];
 
   }
@@ -286,7 +308,7 @@ class EfqController extends ControllerBase {
 
     // Only get Published Nodes
     $conditions = array(
-      "status" => 1
+        "status" => 1
     );
 
     /* Conditions can be passed as groups with AND/OR
@@ -304,8 +326,8 @@ class EfqController extends ControllerBase {
 
     // Default Range
     $range = array(
-      "start" => 0,
-      "length" => 1000
+        "start" => 0,
+        "length" => 1000
     );
 
 
@@ -320,44 +342,44 @@ class EfqController extends ControllerBase {
         $endDate = $this->formatDateFilter($dateArray[1], 'end');
 
         $conditions['group'] =array(
-          "andor" => "OR",
-          'grouping' => array(
-            array(
-              "andor" => "AND",
-              "grouping" => array(
-                "field_date.0.value" => array( $startDate, '<='),
-                "field_date.0.end_value" => array( $startDate, '>')
-              )
-            ),
-            array(
-              "andor" => "AND",
-              "grouping" => array(
-                "field_date.0.value" => array( $endDate, '<'),
-                "field_date.0.end_value" => array( $endDate, '>=')
-              )
-            ),
-            "field_date.0.value" => array( array($startDate, $endDate), 'BETWEEN'),
-            "field_date.0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
-          )
+            "andor" => "OR",
+            'grouping' => array(
+                array(
+                    "andor" => "AND",
+                    "grouping" => array(
+                        "field_date.0.value" => array( $startDate, '<='),
+                        "field_date.0.end_value" => array( $startDate, '>')
+                    )
+                ),
+                array(
+                    "andor" => "AND",
+                    "grouping" => array(
+                        "field_date.0.value" => array( $endDate, '<'),
+                        "field_date.0.end_value" => array( $endDate, '>=')
+                    )
+                ),
+                "field_date.0.value" => array( array($startDate, $endDate), 'BETWEEN'),
+                "field_date.0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
+            )
 
         );
 
         $sort = array(
-          array(
-            "field" => 'field_featured',
-            "direction" => 'DESC'
-          ),
-          array(
-            "field" => 'field_date',
-            "direction" => 'ASC'
-          )
+            array(
+                "field" => 'field_featured',
+                "direction" => 'DESC'
+            ),
+            array(
+                "field" => 'field_date',
+                "direction" => 'ASC'
+            )
         );
 
       }else{
 
         return [
-          '#type' => 'markup',
-          '#markup' => '<p class="no-results">Sorry, the date format is not valid.</p>',
+            '#type' => 'markup',
+            '#markup' => '<p class="no-results">Sorry, the date format is not valid.</p>',
         ];
 
       }
@@ -372,10 +394,10 @@ class EfqController extends ControllerBase {
       $tids = explode('-',$categoryArray[1]);
 
       $conditions['group2'] =array(
-        "andor" => "AND",
-        'grouping' => array(
-          $categoryArray[0] => array( $tids, 'IN'),
-        )
+          "andor" => "AND",
+          'grouping' => array(
+              $categoryArray[0] => array( $tids, 'IN'),
+          )
       );
 
     }
@@ -393,8 +415,8 @@ class EfqController extends ControllerBase {
 
     // If nothing is returned, then return a no result message
     return [
-      '#type' => 'markup',
-      '#markup' => '<p class="no-results">Sorry, there are no results for your current selection.</p>',
+        '#type' => 'markup',
+        '#markup' => '<p class="no-results">Sorry, there are no results for your current selection.</p>',
     ];
 
 
@@ -417,7 +439,7 @@ class EfqController extends ControllerBase {
 
 
     $conditions = array(
-      "status" => 1
+        "status" => 1
     );
 
 
@@ -428,10 +450,10 @@ class EfqController extends ControllerBase {
 
 
     $sort = array(
-      array(
-        "field" => 'created',
-        "direction" => 'DESC'
-      )
+        array(
+            "field" => 'created',
+            "direction" => 'DESC'
+        )
     );
 
 
@@ -460,25 +482,25 @@ class EfqController extends ControllerBase {
         $endDate = $this->formatDateFilter($dateArray[1], 'end');
 
         return array(
-          "andor" => "OR",
-          'grouping' => array(
-            array(
-              "andor" => "AND",
-              "grouping" => array(
-                $field.".0.value" => array( $startDate, '<='),
-                $field.".0.end_value" => array( $startDate, '>')
-              )
-            ),
-            array(
-              "andor" => "AND",
-              "grouping" => array(
-                $field.".0.value" => array( $endDate, '<'),
-                $field.".0.end_value" => array( $endDate, '>=')
-              )
-            ),
-            $field.".0.value" => array( array($startDate, $endDate), 'BETWEEN'),
-            $field.".0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
-          )
+            "andor" => "OR",
+            'grouping' => array(
+                array(
+                    "andor" => "AND",
+                    "grouping" => array(
+                        $field.".0.value" => array( $startDate, '<='),
+                        $field.".0.end_value" => array( $startDate, '>')
+                    )
+                ),
+                array(
+                    "andor" => "AND",
+                    "grouping" => array(
+                        $field.".0.value" => array( $endDate, '<'),
+                        $field.".0.end_value" => array( $endDate, '>=')
+                    )
+                ),
+                $field.".0.value" => array( array($startDate, $endDate), 'BETWEEN'),
+                $field.".0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
+            )
 
         );
 
@@ -519,19 +541,19 @@ class EfqController extends ControllerBase {
       $endDate = $this->formatDateFilter($numDays.'-'.$dateArr['month'].'-'.$dateArr['year'], 'end');
 
       return array(
-        "andor" => "OR",
-        'grouping' => array(
-          $field.".0.value" => array( array($startDate, $endDate), 'BETWEEN'),
-          $field.".0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
-        )
+          "andor" => "OR",
+          'grouping' => array(
+              $field.".0.value" => array( array($startDate, $endDate), 'BETWEEN'),
+              $field.".0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
+          )
 
       );
 
     }else{
 
       return [
-        '#type' => 'markup',
-        '#markup' => '<p class="no-results">Sorry, the date format is not valid.</p>',
+          '#type' => 'markup',
+          '#markup' => '<p class="no-results">Sorry, the date format is not valid.</p>',
       ];
 
     }
@@ -550,10 +572,10 @@ class EfqController extends ControllerBase {
     $tids = explode('-',$categoryArray[1]);
 
     return array(
-      "andor" => "AND",
-      'grouping' => array(
-        $categoryArray[0] => array( $tids, 'IN'),
-      )
+        "andor" => "AND",
+        'grouping' => array(
+            $categoryArray[0] => array( $tids, 'IN'),
+        )
     );
 
   }
@@ -567,8 +589,8 @@ class EfqController extends ControllerBase {
   protected function parseCategories($value){
 
     $conditions = array(
-      "andor" => "AND",
-      'grouping' => array()
+        "andor" => "AND",
+        'grouping' => array()
     );
 
     $categoryArray = explode(',',$value);
@@ -599,10 +621,10 @@ class EfqController extends ControllerBase {
     $tids = explode('-',$categoryArray[1]);
 
     return array(
-      "andor" => "AND",
-      'grouping' => array(
-        $categoryArray[0] => array( $tids, 'NOT IN'),
-      )
+        "andor" => "AND",
+        'grouping' => array(
+            $categoryArray[0] => array( $tids, 'NOT IN'),
+        )
     );
 
   }
@@ -623,8 +645,8 @@ class EfqController extends ControllerBase {
       if(strpos($pair,'null') === false){
         $sort = explode('-',$pair);
         $sorts[] = array(
-          "field" => $sort[0],
-          "direction" => $sort[1]
+            "field" => $sort[0],
+            "direction" => $sort[1]
         );
       }
 
@@ -646,15 +668,15 @@ class EfqController extends ControllerBase {
 
       $array = explode('--',$value);
       return [
-        'values' => $this->parseBasicValues($array[0]),
-        'type' => $array[1]
+          'values' => $this->parseBasicValues($array[0]),
+          'type' => $array[1]
       ];
 
     }
 
     return [
-      'values' => $this->parseBasicValues($value),
-      'type' => 'default'
+        'values' => $this->parseBasicValues($value),
+        'type' => 'default'
     ];
 
   }
@@ -727,25 +749,25 @@ class EfqController extends ControllerBase {
     $endDate = new DrupalDateTime('now +2 month');
 
     return array(
-      "andor" => "OR",
-      'grouping' => array(
-        array(
-          "andor" => "AND",
-          "grouping" => array(
-            $field.".0.value" => array( $startDate, '<='),
-            $field.".0.end_value" => array( $startDate, '>')
-          )
-        ),
-        array(
-          "andor" => "AND",
-          "grouping" => array(
-            $field.".0.value" => array( $endDate, '<'),
-            $field.".0.end_value" => array( $endDate, '>=')
-          )
-        ),
-        $field.".0.value" => array( array($startDate, $endDate), 'BETWEEN'),
-        $field.".0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
-      )
+        "andor" => "OR",
+        'grouping' => array(
+            array(
+                "andor" => "AND",
+                "grouping" => array(
+                    $field.".0.value" => array( $startDate, '<='),
+                    $field.".0.end_value" => array( $startDate, '>')
+                )
+            ),
+            array(
+                "andor" => "AND",
+                "grouping" => array(
+                    $field.".0.value" => array( $endDate, '<'),
+                    $field.".0.end_value" => array( $endDate, '>=')
+                )
+            ),
+            $field.".0.value" => array( array($startDate, $endDate), 'BETWEEN'),
+            $field.".0.end_value" => array( array($startDate, $endDate), 'BETWEEN')
+        )
 
     );
   }
