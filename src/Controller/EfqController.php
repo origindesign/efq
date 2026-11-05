@@ -13,7 +13,6 @@ use Drupal\datetime\Plugin\Field\FieldType\DateTimeItemInterface;
 use Symfony\Component\DependencyInjection\ContainerInterface;
 use Symfony\Component\HttpFoundation\Request;
 use Drupal\efq\EfqQueryEntities;
-use Drupal\Core\Cache\CacheBackendInterface;
 
 
 
@@ -23,7 +22,6 @@ class EfqController extends ControllerBase {
    * @var \Drupal\efq\EfqQueryEntities
    */
   protected $efqQueryEntities;
-  protected $cacheBackend;
 
 
   protected $dateFormat = DateTimeItemInterface::DATE_STORAGE_FORMAT; // Y-m-d
@@ -35,11 +33,9 @@ class EfqController extends ControllerBase {
    * Constructor.
    *
    * @param \Drupal\efq\EfqQueryEntities $EfqQueryEntities
-   * @param \Drupal\Core\Cache\CacheBackendInterface $cache_backend
    */
-  public function __construct(EfqQueryEntities $EfqQueryEntities, CacheBackendInterface $cache_backend) {
+  public function __construct(EfqQueryEntities $EfqQueryEntities) {
     $this->efqQueryEntities = $EfqQueryEntities;
-    $this->cacheBackend = $cache_backend;
   }
 
 
@@ -51,8 +47,7 @@ class EfqController extends ControllerBase {
    */
   public static function create(ContainerInterface $container) {
     return new static(
-        $container->get('efq.query_entities'),
-        $container->get('cache.default')
+        $container->get('efq.query_entities')
     );
   }
 
@@ -64,19 +59,8 @@ class EfqController extends ControllerBase {
    */
   public function getNodesPost(Request $request){
 
-    // Default cache time (5 minutes).
-    $default_cache_time = 300;
     // Get the request params
     $params = $request->request->all();
-    // Get the cache_time parameter from the request, or use the default if not provided.
-    $cache_time = isset($params['cache_time']) ? (int) $params['cache_time'] : $default_cache_time;
-    // Generate a unique cache ID based on the request parameters.
-    $cache_id = 'efq_nodes_post_' . md5(serialize($params));
-
-    // Check if cached data exists.
-    if ($cache = $this->cacheBackend->get($cache_id)) {
-      return $cache->data;
-    }
 
     // Default Parameters
     $entity_type = 'node';
@@ -256,7 +240,6 @@ class EfqController extends ControllerBase {
 
       // Return a render of all nodes
       if ($nodesList){
-        $this->cacheBackend->set($cache_id, $nodesList, time() + $cache_time);
         return $nodesList;
       }
 
@@ -276,7 +259,6 @@ class EfqController extends ControllerBase {
 
       // Return a render of all nodes suffixed with pager
       if ($nodesList){
-        $this->cacheBackend->set($cache_id, $nodesList, time() + $cache_time);
         $nodesList['#suffix'] = $pager;
         return $nodesList;
       }
