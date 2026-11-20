@@ -212,9 +212,19 @@ class EfqController extends ControllerBase {
             $conditions['group2'] = $this->parseDate($value);
             break;
 
-          // Format byMonth:field_name--d-m-Y
+          // Format byMonth:field_name--Y-m-d
           case 'byMonth':
-            $conditions['group2'] = $this->parseByMonth($value);
+            $byMonth = $this->parseByMonth($value);
+            // An invalid date can't become conditions: answer with the
+            // "not valid" message rather than run a broken query (an empty
+            // condition group is a SQL syntax error, so a 500).
+            if ($byMonth === NULL) {
+              return [
+                '#type' => 'markup',
+                '#markup' => '<p class="no-results">Sorry, the date format is not valid.</p>',
+              ];
+            }
+            $conditions['group2'] = $byMonth;
             break;
 
           // Format random:1
@@ -503,19 +513,25 @@ class EfqController extends ControllerBase {
 
   /**
    * @param $value
-   * @return array
+   *   field_name--Y-m-d
+   * @return array|null
+   *   The condition group, or NULL when the date isn't valid.
    */
   protected function parseByMonth($value){
 
     // Explode value
     $values = explode('--',$value);
     $field = $values[0];
-    $date = $values[1];
+    $date = $values[1] ?? '';
 
-    if ( $this->verifyDate($date) ){
+    // Get date as array
+    $dateArr = date_parse_from_format ($this->dateFormat,  $date);
 
-      // Get date as array
-      $dateArr = date_parse_from_format ($this->dateFormat,  $date);
+    // verifyDate() lets out-of-range parts through (2026-13-01 rolls over to
+    // 2027-01-01), and cal_days_in_month() throws on a month outside 1-12,
+    // so check the parsed month and year too.
+    if ( $this->verifyDate($date) && checkdate((int) $dateArr['month'], 1, (int) $dateArr['year']) ){
+
       // Get number of days in month
       $numDays = cal_days_in_month(CAL_GREGORIAN, $dateArr['month'], $dateArr['year']);
 
@@ -531,14 +547,9 @@ class EfqController extends ControllerBase {
 
       );
 
-    }else{
-
-      return [
-          '#type' => 'markup',
-          '#markup' => '<p class="no-results">Sorry, the date format is not valid.</p>',
-      ];
-
     }
+
+    return NULL;
 
   }
 
