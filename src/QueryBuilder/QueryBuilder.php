@@ -272,11 +272,23 @@ class QueryBuilder {
    */
   protected function applyConditionsGroup ( $conditions ){
 
-    $group = ( $conditions['andor'] == "OR" ) ? $this->query->orConditionGroup() : $this->query->andConditionGroup();
+    // A condition group with nothing in it compiles to "AND ()", which is
+    // invalid SQL. Skip empty groups and subgroups instead of sending a
+    // query that can only fail.
+    if ( empty($conditions['grouping']) || !is_array($conditions['grouping']) ){
+      return;
+    }
+
+    $group = ( ($conditions['andor'] ?? 'AND') == "OR" ) ? $this->query->orConditionGroup() : $this->query->andConditionGroup();
+    $hasConditions = FALSE;
 
     foreach ( $conditions["grouping"] as $mainKey => $condition ){
 
       if ( isset($condition['andor'] )) {
+
+        if ( empty($condition['grouping']) || !is_array($condition['grouping']) ){
+          continue;
+        }
 
         $subgroup = ( $condition['andor'] == "OR" ) ? $this->query->orConditionGroup() : $this->query->andConditionGroup();
 
@@ -316,10 +328,13 @@ class QueryBuilder {
       }
 
       $group->condition($subgroup);
+      $hasConditions = TRUE;
 
     }
 
-    $this->query->condition($group);
+    if ( $hasConditions ){
+      $this->query->condition($group);
+    }
 
   }
 
